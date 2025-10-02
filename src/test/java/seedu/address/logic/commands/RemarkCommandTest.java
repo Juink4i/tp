@@ -25,11 +25,11 @@ public class RemarkCommandTest {
 
     @Test
     public void execute() {
-    final Remark remark = new Remark("Some remark");
+        final Remark remark = new Remark("Some remark");
 
-    assertCommandFailure(new RemarkCommand(INDEX_FIRST_PERSON, remark), model,
+        assertCommandFailure(new RemarkCommand(INDEX_FIRST_PERSON, remark), model,
                     String.format(MESSAGE_ARGUMENTS, INDEX_FIRST_PERSON.getOneBased(), remark));
-            }
+    }
 
     @Test
     public void equals() {
