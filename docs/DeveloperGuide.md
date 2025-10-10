@@ -281,7 +281,7 @@ _{Explain here how the data archiving feature will be implemented}_
 * is reasonably comfortable using CLI apps
 * **for this evolution: semi-professional youth football coaches managing multiple teams**
 
-**Value proposition**: 
+**Value proposition**:
 - manage contacts faster than a typical mouse/GUI driven app
 - **specifically for football coaches: quickly organise and access player, parent, and assistant contacts across multiple teams**
 - optimised for fast, command-line style data entry and squad management
@@ -306,6 +306,10 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | coach    | assign an existing injury status to a player   | view and track their availability and rehab timeline                 |
 | `* * *`  | coach    | list all the players                           | view all player information                                          |
 | `* * *`  | coach    | search for a player by name                    | retrieve details of a specific player easily                         |
+| `* * *`  | coach    | save a player's emails                         | have players email to send them documents                            |
+| `* * *`  | coach    | save a player's dietary restriction            | save players dietary restrictions                                    |
+| `* * *`  | coach    | save a player's jersey number                  | easily know what jersey number each player is wearing                |
+| `* * *`  | coach    | save a player as captain                       | see who my team captains are                                         |
 | `* *`    | coach    | filter players by team                         | focus only on players from a given team                              |
 | `* *`    | coach    | filter player by injury                        | quickly check which players are unavailable                          |
 | `* *`    | coach    | filter players by position                     | see all players who can play a certain role                          |
@@ -462,15 +466,15 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
     * 3a1. AddressBook shows an error message.
 
       Use case resumes at step 2.
-  
+
 * 3b. The specified injury status does not exist.
-  
+
     * 3b1. AddressBook shows an error message and prompts User to create a new injury status.
-    
+
     * 3b2. User creates the new injury status.
 
       Use case resumes at step 3.
-    
+
 * 3c. The specified timeframe is invalid.
 
     * 3c1. AddressBook shows an error message.
@@ -482,7 +486,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
     * 3d1. AddressBook shows an error message.
 
       Use case ends.
-      
+
 =======
 **Use case: UC07 - List all players**
 
@@ -491,7 +495,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 1.  User requests to list all players.
 2.  PlayBook shows a list of players
 
-  Use case ends.
+    Use case ends.
 
 **Extensions**
 
@@ -501,14 +505,13 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
       Use case ends.
 
-
 **Use case: UC08 - Search for a player**
 
 **MSS**
 
 1.  User requests to search for a player by name.
 2.  PlayBook shows the player's details.
-    
+
     Use case ends.
 
 **Extensions**
@@ -541,7 +544,8 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
     Use case ends.
 
-=======
+**Extensions**
+
 * 1a. The team name is missing.
 
   * 1a1. PlayBook shows an error message.
@@ -583,7 +587,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
     Use case ends.
 
 * 1b. The injury status is invalid.
-  
+
   * 1b1. PlayBook shows an error message.
 
     Use case ends.
@@ -607,13 +611,13 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 **Extensions**
 
 * 1a. The position is missing.
-  
+
   * 1a1. PlayBook shows an error message.
 
     Use case ends.
 
 * 1b. The position is invalid.
-  
+
   * 1b1. PlayBook shows an error message.
 
     Use case ends.
@@ -621,14 +625,14 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 * 2a. No players are in that position.
 
   * 2a1. PlayBook shows an error message.
-    
+
     Use case ends.
 
 **Use case: UC12 - Create a position**
 
 **MSS**
 
-1.  User requests to create a position with specific details 
+1.  User requests to create a position with specific details
 
 2.  AddressBook adds a position with given details
 
@@ -645,8 +649,8 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 * 2a. Position already exists
 
   * 2a1. AddressBook shows an error message
-    
-    Use case ends. 
+
+    Use case ends.
 
 **Use case: UC13 - Delete a position**
 
@@ -655,7 +659,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 1.  User requests to delete a position with specific details
 
 2.  AddressBook deletes a position with given details
-      
+
 **Extensions**
 
 * 1a. Position detail is invalid
@@ -691,7 +695,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
     * 2a1. AddressBook shows an error message
 
-      Use case ends.  
+      Use case ends.
 
 * 3a. Position does not exist
 
@@ -703,7 +707,84 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
     * 4a1. AddressBook shows an error message
 
-      Use case ends. 
+      Use case ends.
+
+**Use case: UC15 - Save player's email**
+
+**MSS**
+
+1.  User requests to save a player's email under player's details
+2.  AddressBook updates email under player's detail
+
+    Use case ends.
+
+**Extensions**
+
+* 1a. The given player is invalid.
+
+    * 1a1. AddressBook shows an error message.
+
+      Use case ends.
+
+**Use case: UC16 - Save player's dietary restriction**
+
+**MSS**
+
+1.  User requests to save a player's dietary restriction under player's details
+2.  AddressBook updates dietary restriction under player's detail
+
+    Use case ends.
+
+**Extensions**
+
+* 1a. The given player is invalid.
+
+    * 1a1. AddressBook shows an error message.
+
+      Use case ends.
+
+**Use case: UC17 - Save player's jersey number**
+
+**MSS**
+
+1.  User requests to save a player's jersey number under player's details
+2.  AddressBook updates jersey number under player's detail
+
+    Use case ends.
+
+**Extensions**
+
+* 1a. The given player is invalid.
+
+    * 1a1. AddressBook shows an error message.
+
+      Use case ends.
+
+* 1b. The jersey number had already been taken
+
+    * 1b1. AddressBook ask for confirmation to give number to this player despite another player having this number.
+    * 1b2. User confirms decision
+    * 1b3. AddressBook removes old player's number
+    * 1b4. AddressBook updates jersey number of player
+
+      Use case ends.
+
+**Use case: UC18 - Save a player as captain**
+
+**MSS**
+
+1.  User requests to save a player as captain under player's details
+2.  AddressBook updates if player is captain under player's detail
+
+    Use case ends.
+
+**Extensions**
+
+* 1a. The given player is invalid.
+
+    * 1a1. AddressBook shows an error message.
+
+      Use case ends.
 
 *{More to be added}*
 

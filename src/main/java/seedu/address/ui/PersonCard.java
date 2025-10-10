@@ -40,15 +40,25 @@ public class PersonCard extends UiPart<Region> {
     private Label email;
     @FXML
     private FlowPane tags;
+    @FXML
+    private FlowPane teamContainer;
+    @FXML
+    private FlowPane positionContainer;
 
     /**
-     * Creates a {@code PersonCode} with the given {@code Person} and index to display.
+     * Creates a {@code PersonCard} with the given {@code Person} and index to display.
      */
     public PersonCard(Person person, int displayedIndex) {
         super(FXML);
         this.person = person;
         id.setText(displayedIndex + ". ");
         name.setText(person.getName().fullName);
+        Label teamTag = new Label(person.getTeam().getName());
+        teamTag.getStyleClass().add("team-tag");
+        teamContainer.getChildren().add(teamTag);
+        Label positionTag = new Label(person.getPosition().getName());
+        positionTag.getStyleClass().add("team-tag");
+        positionContainer.getChildren().add(positionTag);
         phone.setText(person.getPhone().value);
         address.setText(person.getAddress().value);
         email.setText(person.getEmail().value);

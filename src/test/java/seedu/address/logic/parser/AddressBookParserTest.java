@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
+import static seedu.address.logic.commands.CommandTestUtil.PLAYER_DESC_AMY;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_NAME_AMY;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 import static seedu.address.testutil.TypicalTeams.U16;
@@ -21,10 +23,15 @@ import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.EditCommand;
 import seedu.address.logic.commands.EditCommand.EditPersonDescriptor;
 import seedu.address.logic.commands.ExitCommand;
+import seedu.address.logic.commands.FilterCaptainCommand;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.ListTeamsCommand;
+import seedu.address.logic.commands.MakeCaptainCommand;
+import seedu.address.logic.commands.StripCaptainCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
+import seedu.address.model.person.Name;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.EditPersonDescriptorBuilder;
@@ -51,9 +58,10 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_delete() throws Exception {
+        Name name = new Name(VALID_NAME_AMY);
         DeleteCommand command = (DeleteCommand) parser.parseCommand(
-                DeleteCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased());
-        assertEquals(new DeleteCommand(INDEX_FIRST_PERSON), command);
+                DeleteCommand.COMMAND_WORD + PLAYER_DESC_AMY);
+        assertEquals(new DeleteCommand(name), command);
     }
 
     @Test
@@ -98,10 +106,38 @@ public class AddressBookParserTest {
     }
 
     @Test
+    public void parseCommand_listTeams() throws Exception {
+        assertTrue(parser.parseCommand(ListTeamsCommand.COMMAND_WORD) instanceof ListTeamsCommand);
+    }
+
+    @Test
+    public void parseCommand_listTeams_withExtraArgs() throws Exception {
+        assertTrue(parser.parseCommand(ListTeamsCommand.COMMAND_WORD + " 3") instanceof ListTeamsCommand);
+    }
+
+    @Test
+    public void parseCommand_makeCaptain() throws Exception {
+        Name name = new Name(VALID_NAME_AMY);
+        assertEquals(new MakeCaptainCommand(name),
+                parser.parseCommand(MakeCaptainCommand.COMMAND_WORD + PLAYER_DESC_AMY));
+    }
+
+    @Test
+    public void parseCommand_stripCaptain() throws Exception {
+        Name name = new Name(VALID_NAME_AMY);
+        assertEquals(new StripCaptainCommand(name),
+                parser.parseCommand(StripCaptainCommand.COMMAND_WORD + PLAYER_DESC_AMY));
+    }
+
+    @Test
+    public void parseCommand_filterCaptains() throws Exception {
+        assertTrue(parser.parseCommand(FilterCaptainCommand.COMMAND_WORD) instanceof FilterCaptainCommand);
+    }
+
+    @Test
     public void parseCommand_unrecognisedInput_throwsParseException() {
-        assertThrows(ParseException.class,
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT,
-                        HelpCommand.MESSAGE_USAGE), () -> parser.parseCommand(""));
+        assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT,
+                HelpCommand.MESSAGE_USAGE), () -> parser.parseCommand(""));
     }
 
     @Test

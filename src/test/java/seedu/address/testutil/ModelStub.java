@@ -8,8 +8,13 @@ import seedu.address.commons.core.GuiSettings;
 import seedu.address.model.Model;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.ReadOnlyUserPrefs;
+import seedu.address.model.person.Name;
 import seedu.address.model.person.Person;
+import seedu.address.model.person.exceptions.AlreadyCaptainException;
+import seedu.address.model.person.exceptions.AlreadyNotCaptainException;
+import seedu.address.model.position.Position;
 import seedu.address.model.team.Team;
+
 
 //@@author
 
@@ -68,6 +73,11 @@ public class ModelStub implements Model {
     }
 
     @Override
+    public Person getPersonByName(Name name) {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
     public void deletePerson(Person target) {
         throw new AssertionError("This method should not be called.");
     }
@@ -88,12 +98,68 @@ public class ModelStub implements Model {
     }
 
     @Override
+    public void updateFilteredTeamList(Predicate<Team> predicate) {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
+    public void makeCaptain(Person person) {
+        if (person.isCaptain()) {
+            throw new AlreadyCaptainException();
+        }
+        person.makeCaptain();
+    }
+
+    @Override
+    public void stripCaptain(Person person) {
+        if (!person.isCaptain()) {
+            throw new AlreadyNotCaptainException();
+        }
+        person.stripCaptain();
+    }
+
+    @Override
+    public ObservableList<Team> getFilteredTeamList() {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
     public boolean hasTeam(Team team) {
         throw new AssertionError("This method should not be called.");
     }
 
     @Override
     public void addTeam(Team team) {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
+    public boolean hasPosition(Position position) {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
+    public void addPosition(Position position) {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
+    public void deletePosition(Position position) {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
+    public ObservableList<Position> getFilteredPositionList() {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
+    public void updateFilteredPositionList(Predicate<Position> predicate) {
+        throw new AssertionError("This method should not be called.");
+    }
+
+    @Override
+    public Position getPositionByName(String name) {
         throw new AssertionError("This method should not be called.");
     }
 
