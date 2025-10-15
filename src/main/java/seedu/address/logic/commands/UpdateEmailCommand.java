@@ -80,13 +80,12 @@ public class UpdateEmailCommand extends Command {
             throw new CommandException(String.format(Messages.MESSAGE_PERSON_NOT_FOUND, targetName));
         }
 
-        boolean isValid = Email.isValidEmail(newEmailString);
-
-        if (!isValid) {
+        Email updatedEmail;
+        try {
+            updatedEmail = new Email(newEmailString);
+        } catch (IllegalArgumentException e) {
             throw new CommandException(String.format(MESSAGE_INVALID_EMAIL, newEmailString));
         }
-
-        Email updatedEmail = new Email(newEmailString);
         Person updatedPerson = new Person(
                 targetPerson.getName(),
                 targetPerson.getPhone(),
