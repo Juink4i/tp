@@ -30,6 +30,7 @@ import seedu.address.logic.commands.MakeCaptainCommand;
 import seedu.address.logic.commands.NewPositionCommand;
 import seedu.address.logic.commands.StripCaptainCommand;
 import seedu.address.logic.commands.UnassignInjuryCommand;
+import seedu.address.logic.commands.UpdateEmailCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 
 /**
@@ -128,6 +129,9 @@ public class AddressBookParser {
 
         case MakeCaptainCommand.COMMAND_WORD:
             return new MakeCaptainCommandParser().parse(arguments);
+
+        case UpdateEmailCommand.COMMAND_WORD:
+            return new UpdateEmailCommandParser().parse(arguments);
 
         default:
             logger.finer("This user input caused a ParseException: " + userInput);
