@@ -27,7 +27,7 @@ PlayBook (PB) is a **desktop app for semi-professional youth football coaches to
     - [Listing all teams: `listteams`](#listing-all-teams-listteams)
     - [Listing all positions: `listposition`](#listing-all-positions-listposition)
     - [Listing all injured: `listinjured`](#listing-all-injured-players-listinjured)
-    - [Listing all captains: `listcaptains`](#listing-all-captains-listcaptains)
+    - [Listing all captains: `listcaptain`](#listing-all-captains-listcaptain)
     - [Editing a player: `edit`](#editing-a-player-edit)
     - [Locating players by name: `find`](#locating-players-by-name-find)
     - [Filtering players by team, injury and/or position: `filter`](#filtering-players-by-team-injury-andor-position-filter)
@@ -271,10 +271,12 @@ Format: `makecaptain pl/PLAYER_NAME`
 * `PLAYER_NAME` is case-insensitive, e.g. `john doe` is the same as `John Doe`.
 * `PLAYER_NAME` should not be blank.
 * The player must not already be an assigned captain.
+* **Multiple captains per team are supported** - you can assign multiple players from the same team as captains to facilitate co-leadership structures.
 
 Examples:
 * `makecaptain pl/John Doe` assigns the player `John Doe` as a captain.
 * `makecaptain pl/Sergio Ramos` assigns the player `Sergio Ramos` as a captain.
+* `makecaptain pl/Jane Smith` assigns another captain to the same team (if Jane Smith is on the same team).
 
 ### Unassigning player as captain: `stripcaptain`
 
@@ -316,11 +318,11 @@ Shows a list of the injured players in the PlayBook.
 
 Format: `listinjured`
 
-### Listing all captains: `listcaptains`
+### Listing all captains: `listcaptain`
 
 Shows a list of the captains in the PlayBook.
 
-Format: `listcaptains`
+Format: `listcaptain`
 
 ### Editing a player: `edit`
 
@@ -509,7 +511,7 @@ _Details coming soon ..._
 | **List Teams**                  | `listteams`                                                                                                                                                                                                         |
 | **Make Captain**                | `makecaptain pl/PLAYER_NAME` <br> e.g., `makecaptain pl/John Doe`                                                                                                                                                   |
 | **Strip Captain**               | `stripcaptain pl/PLAYER_NAME` <br> e.g., `stripcaptain pl/John Doe`                                                                                                                                                 |
-| **Filter Captains**             | `filtercaptains`                                                                                                                                                                                                    |
+| **Filter Captains**             | `filtercaptain`                                                                                                                                                                                                     |
 | **List Teams**                  | `listteam`                                                                                                                                                                                                          |
 | **List Positions**              | `listposition`                                                                                                                                                                                                      |
 | **List Injured Players**        | `listinjured`                                                                                                                                                                                                       |
