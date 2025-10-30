@@ -19,6 +19,7 @@
     * [Common classes](#common-classes)
 * [Implementation](#implementation)
     * [\[Proposed\] Undo/redo feature](#proposed-undoredo-feature)
+    * [Captain Management Feature](#captain-management-feature)
 * [Documentation, logging, testing, configuration, dev-ops](#documentation-logging-testing-configuration-dev-ops)
 * [Appendix: Requirements](#appendix-requirements)
     * [Product scope](#product-scope)
@@ -30,6 +31,9 @@
     * [Launch and shutdown](#launch-and-shutdown)
     * [Deleting a player](#deleting-a-player)
     * [Assigning an injury status to a player](#assigning-an-injury-status-to-a-player)
+    * [Assigning a captain to a player](#assigning-a-captain-to-a-player)
+    * [Removing captain status from a player](#removing-captain-status-from-a-player)
+    * [Listing all captains](#listing-all-captains)
     * [Saving data](#saving-data)
 
 --------------------------------------------------------------------------------------------------------------------
@@ -281,6 +285,272 @@ The following activity diagram summarizes what happens when a user executes a ne
   * Cons: We must ensure that the implementation of each individual command are correct.
 
 _{more aspects and alternatives to be added}_
+
+### Captain Management Feature
+
+#### Implementation
+
+The captain management feature allows coaches to designate one captain per team and view all captains across teams. It consists of three main commands:
+- `assigncaptain pl/PLAYER_NAME` - Assigns a player as captain of their team
+- `stripcaptain pl/PLAYER_NAME` - Removes captain status from a player
+- `listcaptain` - Lists all players who are captains
+
+The captain status is stored as a boolean field `isCaptain` in the immutable `Person` class. Since `Person` objects are immutable, any change to captain status requires creating a new `Person` object with the updated status.
+
+#### Architecture and Design
+
+The captain management feature follows the standard command architecture:
+
+1. **Command Classes**: `AssignCaptainCommand`, `StripCaptainCommand`, `ListCaptainCommand`
+2. **Parser Classes**: `AssignCaptainCommandParser`, `StripCaptainCommandParser` (no parser needed for `ListCaptainCommand`)
+3. **Model Methods**: `assignCaptain(Person)`, `stripCaptain(Person)`, `getTeamCaptain(Team)`
+
+**Key Design Decisions:**
+
+1. **Immutability**: The `Person` class remains immutable. Captain status changes create a new `Person` object.
+2. **One Captain Per Team**: When assigning a new captain, any existing captain on that team is automatically stripped of their captaincy.
+3. **Idempotent Operations**: Commands can be executed multiple times without causing errors:
+   - Assigning captain to someone who's already a captain succeeds silently
+   - Stripping captain from someone who's not a captain succeeds silently
+4. **Automatic Captain Removal**: When a player changes teams via `assignteam`, their captain status is automatically removed.
+
+#### Sequence Diagram: Assign Captain Command
+
+The following sequence diagram shows how the `assigncaptain pl/Sergio Ramos` command is executed:
+
+```
+User -> LogicManager: execute("assigncaptain pl/Sergio Ramos")
+LogicManager -> AddressBookParser: parseCommand("assigncaptain pl/Sergio Ramos")
+AddressBookParser -> AssignCaptainCommandParser: parse("pl/Sergio Ramos")
+AssignCaptainCommandParser --> AddressBookParser: AssignCaptainCommand
+AddressBookParser --> LogicManager: AssignCaptainCommand
+
+LogicManager -> AssignCaptainCommand: execute(model)
+AssignCaptainCommand -> Model: getPersonByName(Name("Sergio Ramos"))
+Model --> AssignCaptainCommand: targetPerson
+
+AssignCaptainCommand -> Model: getTeamCaptain(targetPerson.getTeam())
+Model --> AssignCaptainCommand: currentCaptain (or null)
+
+alt currentCaptain exists
+    AssignCaptainCommand -> Model: stripCaptain(currentCaptain)
+    Model -> UniquePersonList: setPerson(oldPerson, newPersonWithoutCaptaincy)
+end
+
+AssignCaptainCommand -> Model: assignCaptain(targetPerson)
+Model -> UniquePersonList: setPerson(oldPerson, newPersonWithCaptaincy)
+AssignCaptainCommand --> LogicManager: CommandResult
+LogicManager --> User: Display success message
+```
+
+#### Activity Diagram: Assign Captain Flow
+
+```
+Start
+→ Parse command
+→ Get target person by name
+→ [Person exists?]
+  No → Throw CommandException (Person not found)
+  Yes → Get current captain of person's team
+    → [Current captain exists?]
+      Yes → Strip captain from current captain
+            → Notify user about stripped captain
+      No → Continue
+    → Assign captain to target person
+    → Return success message
+→ End
+```
+
+#### Implementation Details
+
+**Model Level (`ModelManager.java`):**
+
+```java
+@Override
+public void assignCaptain(Person person) {
+    Person updatedPerson = new Person(
+        person.getName(),
+        person.getPhone(),
+        person.getEmail(),
+        person.getAddress(),
+        person.getTeam(),
+        person.getTags(),
+        person.getPosition(),
+        person.getInjuries(),
+        true  // Set captain status to true
+    );
+    setPerson(person, updatedPerson);
+}
+
+@Override
+public void stripCaptain(Person person) {
+    Person updatedPerson = new Person(
+        person.getName(),
+        // ... other fields
+        Person.DEFAULT_CAPTAIN_STATUS  // Set to false
+    );
+    setPerson(person, updatedPerson);
+}
+
+@Override
+public Person getTeamCaptain(Team team) {
+    requireNonNull(team);
+    return addressBook.getPersonList().stream()
+        .filter(person -> person.getTeam().equals(team) && person.isCaptain())
+        .findFirst()
+        .orElse(null);
+}
+```
+
+**Command Level (`AssignCaptainCommand.java`):**
+
+The command enforces the one-captain-per-team rule by checking for existing captains before assignment:
+
+```java
+@Override
+public CommandResult execute(Model model) throws CommandException {
+    Person targetPerson = model.getPersonByName(targetName);
+    
+    Person currentCaptain = model.getTeamCaptain(targetPerson.getTeam());
+    String resultMessage = "";
+    
+    if (currentCaptain != null) {
+        model.stripCaptain(currentCaptain);
+        resultMessage = String.format(MESSAGE_STRIPPED_PREVIOUS_CAPTAIN, 
+                                     currentCaptain.getName());
+    }
+    
+    model.assignCaptain(targetPerson);
+    resultMessage += String.format(MESSAGE_SUCCESS, 
+                                   targetPerson.getName(), 
+                                   targetPerson.getTeam().getName());
+    return CommandResult.showPersonCommandResult(resultMessage);
+}
+```
+
+#### Design Considerations
+
+**Aspect: Handling Multiple Captain Assignments**
+
+* **Alternative 1 (current choice):** Automatically strip the old captain when assigning a new one.
+  * Pros: Enforces one-captain-per-team rule automatically, better user experience (no need to manually strip first)
+  * Cons: User might not notice the old captain was stripped if they don't read the message carefully
+  
+* **Alternative 2:** Throw an error if a captain already exists.
+  * Pros: Forces explicit action from the user, prevents accidental captain changes
+  * Cons: Requires two commands for changing captains (strip then assign), more cumbersome workflow
+
+**Aspect: Idempotent Behavior**
+
+* **Alternative 1 (current choice):** Commands succeed even if the state is already as desired.
+  * Pros: More forgiving user experience, prevents errors from repeated commands
+  * Cons: User might not realize the command had no effect
+  
+* **Alternative 2:** Throw errors for redundant operations.
+  * Pros: Provides immediate feedback about the current state
+  * Cons: Frustrating user experience when commands fail for benign reasons
+
+**Aspect: Captain Status During Team Reassignment**
+
+* **Alternative 1 (current choice):** Automatically remove captain status when player changes teams.
+  * Pros: Prevents orphaned captain status, maintains data integrity
+  * Cons: User loses captain status even if moving to a team without a captain
+  
+* **Alternative 2:** Retain captain status when changing teams.
+  * Pros: Preserves captain designation
+  * Cons: Could result in multiple captains per team if not carefully managed
+
+#### Test Cases
+
+The captain management feature is tested through comprehensive unit tests that verify both command execution and edge cases.
+
+**`AssignCaptainCommandTest.java`**
+
+| Test Case | Purpose | Verification |
+|-----------|---------|--------------|
+| `execute_personExistsAndNotCaptain_marksAsCaptain` | Verify assigning captain to a non-captain player | Checks that command returns success message with player name and team |
+| `execute_personDoesNotExist_throwsCommandException` | Verify error handling for non-existent player | Checks that `CommandException` is thrown with appropriate error message |
+| `execute_teamAlreadyHasCaptain_stripsOldCaptainAndMakesNewCaptain` | Verify one-captain-per-team enforcement | Checks that old captain is stripped and new captain is assigned, with both messages in result |
+| `equals` | Verify command equality | Tests `equals()` method for same object, same values, null, different types, and different names |
+
+**Key Testing Patterns:**
+
+1. **ModelStub Usage**: Tests use `ModelStub` to isolate command logic from the full model implementation
+2. **Idempotent Behavior**: Tests verify commands succeed even when state is already desired (no exception thrown)
+3. **Message Verification**: Tests check exact success messages returned by commands
+4. **Immutability**: Tests do not check state of original `Person` objects, only command results
+
+**`StripCaptainCommandTest.java`**
+
+| Test Case | Purpose | Verification |
+|-----------|---------|--------------|
+| `execute_personExistsAndIsCaptain_stripsCaptaincy` | Verify removing captain status from a captain | Checks that command returns success message |
+| `execute_personDoesNotExist_throwsCommandException` | Verify error handling for non-existent player | Checks that `CommandException` is thrown with appropriate error message |
+| `equals` | Verify command equality | Tests `equals()` method for same object, same values, null, different types, and different names |
+
+**`ListCaptainCommandTest.java`**
+
+| Test Case | Purpose | Verification |
+|-----------|---------|--------------|
+| `execute_listCaptain_showsCaptainsOnly` | Verify filtering shows only captains | Checks that `PREDICATE_SHOW_CAPTAINS` is applied to model |
+| `execute_listCaptain_success` | Verify success message | Checks that correct success message is returned |
+
+**Example Test Implementation:**
+
+```java
+@Test
+public void execute_teamAlreadyHasCaptain_stripsOldCaptainAndMakesNewCaptain() throws Exception {
+    Person oldCaptain = new PersonBuilder().withName("Old Captain").withCaptain(true).build();
+    Person newCaptain = new PersonBuilder().withName("New Captain").withCaptain(false).build();
+    Name newCaptainName = newCaptain.getName();
+
+    ModelStub modelStub = new ModelStub() {
+        private boolean oldCaptainStripped = false;
+
+        @Override
+        public Person getPersonByName(Name queryName) {
+            if (queryName.equals(newCaptainName)) {
+                return newCaptain;
+            }
+            throw new PersonNotFoundException();
+        }
+
+        @Override
+        public Person getTeamCaptain(seedu.address.model.team.Team team) {
+            return oldCaptainStripped ? null : oldCaptain;
+        }
+
+        @Override
+        public void stripCaptain(Person person) {
+            if (person.equals(oldCaptain)) {
+                oldCaptainStripped = true;
+            }
+        }
+
+        @Override
+        public void assignCaptain(Person person) {
+            // Captain assignment handled by command
+        }
+    };
+
+    AssignCaptainCommand command = new AssignCaptainCommand(newCaptainName);
+    CommandResult result = command.execute(modelStub);
+
+    // Verify message mentions both stripping and assigning
+    String expectedMessage = String.format(AssignCaptainCommand.MESSAGE_STRIPPED_PREVIOUS_CAPTAIN,
+            oldCaptain.getName())
+            + String.format(AssignCaptainCommand.MESSAGE_SUCCESS,
+            newCaptain.getName(), newCaptain.getTeam().getName());
+    assertEquals(CommandResult.showPersonCommandResult(expectedMessage), result);
+}
+```
+
+**Testing Philosophy:**
+
+- **Immutability Preservation**: Tests respect `Person` immutability by not checking original object state
+- **Idempotent Operations**: No exceptions thrown for redundant operations (e.g., assigning captain to existing captain)
+- **One Captain Per Team**: Tests verify automatic stripping of old captain when assigning new one
+- **Clear Error Messages**: Tests verify specific, helpful error messages for failure cases
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -823,86 +1093,80 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 
-1.  User requests to assign the captain role to a player.
-2.  PlayBook updates the player's details to reflect they are now their team's captain.
+1.  User requests to assign the captain role to a player by name.
+2.  PlayBook checks if another player on the same team is already captain.
+3.  If yes, PlayBook removes captain status from the previous captain and notifies the user.
+4.  PlayBook assigns captain status to the specified player.
+5.  PlayBook displays success message with the player's name and team.
 
     Use case ends.
 
 **Extensions**
 
-* 1a. The given player is invalid.
+* 1a. The given player name does not exist.
 
-    * 1a1. PlayBook shows an error message.
-
-      Use case ends.
-
-* 1b. The player is already a captain.
-
-    * 1b1. PlayBook shows an error message.
+    * 1a1. PlayBook shows an error message indicating player not found.
 
       Use case ends.
 
-* 1c. Another player is already the captain.
+* 1b. The player name is invalid (empty or contains special characters).
 
-    * 1c1. PlayBook unassigns previous captain.
-    * 1c2. PlayBook assigns the player as new captain.
+    * 1b1. PlayBook shows an error message indicating invalid name format.
 
       Use case ends.
 
-**Use case: UC18 - Remove captain from a player**
+* 2a. The player is already the captain of their team.
+
+    * 2a1. PlayBook assigns captain status again (idempotent operation).
+    * 2a2. PlayBook displays success message.
+
+      Use case ends.
+
+**Use case: UC18 - Remove captain status from a player**
 
 **MSS**
 
-1.  User requests to remove the captain role from a player.
-2.  PlayBook updates the player's details to reflect they are no longer captain.
+1.  User requests to remove the captain role from a player by name.
+2.  PlayBook removes captain status from the specified player.
+3.  PlayBook displays success message.
 
     Use case ends.
 
 **Extensions**
 
-* 1a. The given player is invalid.
+* 1a. The given player name does not exist.
 
-    * 1a1. PlayBook shows an error message.
-
-      Use case ends.
-
-* 1b. The player is not currently a captain.
-
-    * 1b1. PlayBook shows an error message.
+    * 1a1. PlayBook shows an error message indicating player not found.
 
       Use case ends.
 
-**Use case: UC19 - Filter players by captain status**
+* 1b. The player name is invalid (empty or contains special characters).
+
+    * 1b1. PlayBook shows an error message indicating invalid name format.
+
+      Use case ends.
+
+* 2a. The player is not currently a captain.
+
+    * 2a1. PlayBook removes captain status (idempotent operation - no error).
+    * 2a2. PlayBook displays success message.
+
+      Use case ends.
+
+**Use case: UC19 - List all team captains**
 
 **MSS**
 
-1.  User requests to filter players who are captains
-2.  PlayBook shows the list of players marked as captains
+1.  User requests to view all players who are captains.
+2.  PlayBook filters and displays the list of all players marked as captains across all teams.
 
     Use case ends.
 
 **Extensions**
 
-* 1a. No players are marked as captains.
+* 2a. No players are currently marked as captains.
 
-    * 1a1. PlayBook shows an empty list message.
-
-      Use case ends.
-
-**Use case: UC19 - Save a player as captain**
-
-**MSS**
-
-1.  User requests to save a player as captain under player's details.
-2.  PlayBook updates if player is captain under player's detail.
-
-    Use case ends.
-
-**Extensions**
-
-* 1a. The given player is invalid.
-
-    * 1a1. PlayBook shows an error message.
+    * 2a1. PlayBook shows an empty list.
 
       Use case ends.
 
@@ -1006,6 +1270,60 @@ testers are expected to do more *exploratory* testing.
 
     1. Other incorrect delete commands to try: `assigninjury`, `assigninjury pl/Alex Yeoh`, `assigninjury i/ACL`, `...`<br>
        Expected: Similar to previous.
+
+### Assigning a captain to a player
+
+1. Assigning captain while all players are being shown
+
+    1. Prerequisites: List all players using the `list` command. Multiple players in the list. At least two players on the same team (e.g., "Team A").
+
+    1. Test case: `assigncaptain pl/Alex Yeoh`<br>
+       Expected: Alex Yeoh is assigned as captain of their team. Success message shows: "Alex Yeoh is now captain of [Team Name]".
+
+    1. Test case: `assigncaptain pl/Bernice Yu` (where Bernice Yu is on the same team as Alex Yeoh, who is already captain)<br>
+       Expected: Alex Yeoh is stripped of captain status. Bernice Yu is assigned as captain. Success message shows: "Alex Yeoh is no longer captain. Bernice Yu is now captain of [Team Name]".
+
+    1. Test case: `assigncaptain pl/Alex Yeoh` (when Alex is already captain)<br>
+       Expected: Command succeeds (idempotent). Success message shows: "Alex Yeoh is now captain of [Team Name]". No error is thrown.
+
+    1. Test case: `assigncaptain pl/Invalid_Name`<br>
+       Expected: No captain is assigned. Error message shown indicating player not found.
+
+    1. Other incorrect commands to try: `assigncaptain`, `assigncaptain Alex`, `assigncaptain pl/`, `...`<br>
+       Expected: Error message indicating invalid command format.
+
+### Removing captain status from a player
+
+1. Removing captain while all players are being shown
+
+    1. Prerequisites: List all players using the `list` command. At least one player is marked as captain.
+
+    1. Test case: `stripcaptain pl/Alex Yeoh` (where Alex Yeoh is a captain)<br>
+       Expected: Alex Yeoh is no longer captain. Success message shows: "Alex Yeoh is no longer team captain."
+
+    1. Test case: `stripcaptain pl/Bernice Yu` (where Bernice Yu is not a captain)<br>
+       Expected: Command succeeds (idempotent). Success message shows: "Bernice Yu is no longer team captain." No error is thrown.
+
+    1. Test case: `stripcaptain pl/Invalid_Name`<br>
+       Expected: No changes made. Error message shown indicating player not found.
+
+    1. Other incorrect commands to try: `stripcaptain`, `stripcaptain Bernice`, `stripcaptain pl/`, `...`<br>
+       Expected: Error message indicating invalid command format.
+
+### Listing all captains
+
+1. Listing captains
+
+    1. Prerequisites: Have multiple players in the PlayBook, with at least one or more players marked as captains across different teams.
+
+    1. Test case: `listcaptain`<br>
+       Expected: Only players who are captains are shown in the list. Success message shows: "Listed all captains".
+
+    1. Test case: `listcaptain` (when no players are captains)<br>
+       Expected: Empty list is shown. Message shows: "Listed all captains" with 0 players displayed.
+
+    1. Test case: `list` (to return to showing all players)<br>
+       Expected: All players are shown again.
 
 ### Saving data
 
